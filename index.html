@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>School Van Route Planner</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --text: #24303a;
+    --muted: #64748b;
+    --line: #e4e8ed;
+    --accent: #0e7a5f;
+    --accent-soft: #e6f4ef;
+    --drop: #1d5fa8;
+    --drop-soft: #e8f0fa;
+    --danger: #b23b3b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+  header.app { text-align: center; margin-bottom: 24px; }
+  header.app h1 { margin: 0 0 4px; font-size: 1.6rem; }
+  header.app p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+
+  section.card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(20, 30, 40, 0.04);
+  }
+  .card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .card-head h2 { margin: 0; font-size: 1.15rem; }
+  .card-head .hint { color: var(--muted); font-size: 0.85rem; }
+
+  /* Student list */
+  ul.students { list-style: none; margin: 0; padding: 0; }
+  ul.students li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  ul.students li:last-child { border-bottom: none; }
+  .avatar {
+    flex: 0 0 40px; height: 40px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.95rem;
+  }
+  .stu-info { flex: 1; min-width: 0; }
+  .stu-info .name { font-weight: 600; }
+  .stu-info .point { color: var(--muted); font-size: 0.9rem; }
+  .stu-info .point b { color: var(--text); font-weight: 600; }
+  .remove {
+    flex: 0 0 auto; border: none; background: none; color: var(--muted);
+    font-size: 1.1rem; cursor: pointer; padding: 4px 8px; border-radius: 6px;
+  }
+  .remove:hover { color: var(--danger); background: #fdf0f0; }
+  .empty-note { color: var(--muted); font-size: 0.95rem; padding: 8px 4px; }
+
+  /* Buttons */
+  button.primary {
+    background: var(--accent); color: #fff; border: none;
+    padding: 10px 18px; border-radius: 8px; font-size: 0.95rem;
+    font-weight: 600; cursor: pointer;
+  }
+  button.primary:hover { background: #0c6a52; }
+
+  /* Route */
+  .route-placeholder { color: var(--muted); font-size: 0.95rem; }
+  ol.stops { list-style: none; margin: 0; padding: 0; counter-reset: stop; }
+  ol.stops > li {
+    counter-increment: stop;
+    position: relative;
+    padding: 12px 12px 12px 56px;
+    border-left: 4px solid var(--line);
+    margin: 0 0 4px 8px;
+    background: #fbfcfd;
+    border-radius: 0 8px 8px 0;
+  }
+  ol.stops > li::before {
+    content: counter(stop);
+    position: absolute; left: 14px; top: 12px;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--text); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; font-weight: 700;
+  }
+  .stop-type { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; }
+  li.pickup .stop-type { color: var(--accent); }
+  li.dropoff .stop-type { color: var(--drop); }
+  li.pickup.first { border-left-color: var(--accent); background: var(--accent-soft); }
+  li.dropoff.first { border-left-color: var(--drop); background: var(--drop-soft); }
+  .badge {
+    display: inline-block; margin-left: 8px; padding: 2px 10px;
+    border-radius: 999px; font-size: 0.75rem; font-weight: 700;
+  }
+  .badge.pickup { background: var(--accent); color: #fff; }
+  .badge.dropoff { background: var(--drop); color: #fff; }
+  .stop-place { font-weight: 600; }
+  .stop-who { color: var(--muted); font-size: 0.9rem; }
+  .route-note { color: var(--muted); font-size: 0.85rem; margin: 12px 0 0; }
+
+  /* Form */
+  form#addForm .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  form#addForm .fields .full { grid-column: 1 / -1; }
+  @media (max-width: 620px) { form#addForm .fields { grid-template-columns: 1fr; } }
+  label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
+  input[type="text"] {
+    width: 100%; padding: 10px 12px; font-size: 0.95rem;
+    border: 1px solid var(--line); border-radius: 8px; background: #fff;
+    color: var(--text); font-family: inherit;
+  }
+  input[type="text"]:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .form-foot { margin-top: 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .form-error { color: var(--danger); font-size: 0.85rem; display: none; }
+  .form-ok { color: var(--accent); font-size: 0.85rem; display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="app">
+    <h1>🚐 School Van Route Planner</h1>
+    <p>Plan your pickup and drop-off order to save fuel and time. Nothing is saved — this page resets when you close it.</p>
+  </header>
+
+  <!-- Section 1: Student list -->
+  <section class="card" id="section-students">
+    <div class="card-head">
+      <h2>1. Student list</h2>
+      <span class="hint" id="studentCount"></span>
+    </div>
+    <ul class="students" id="studentList"></ul>
+  </section>
+
+  <!-- Section 2: Route order -->
+  <section class="card" id="section-route">
+    <div class="card-head">
+      <h2>2. Route order</h2>
+      <button class="primary" id="sortBtn" type="button">Sort route</button>
+    </div>
+    <div id="routeArea">
+      <p class="route-placeholder">Tap <b>Sort route</b> to see a suggested pickup and drop-off order.</p>
+    </div>
+  </section>
+
+  <!-- Section 3: Add student -->
+  <section class="card" id="section-add">
+    <div class="card-head">
+      <h2>3. Add a student</h2>
+    </div>
+    <form id="addForm" novalidate>
+      <div class="fields">
+        <div class="full">
+          <label for="inName">Student name</label>
+          <input type="text" id="inName" placeholder="e.g. Nur Aisyah" autocomplete="off">
+        </div>
+        <div>
+          <label for="inSchool">School pickup point</label>
+          <input type="text" id="inSchool" placeholder="e.g. SK Taman Sri Muda" autocomplete="off">
+        </div>
+        <div>
+          <label for="inHome">Home drop-off point</label>
+          <input type="text" id="inHome" placeholder="e.g. 12 Jalan Sri Muda 25" autocomplete="off">
+        </div>
+      </div>
+      <div class="form-foot">
+        <button class="primary" type="submit">Add student</button>
+        <span class="form-error" id="formError">Please fill in all three fields.</span>
+        <span class="form-ok" id="formOk">Added ✓</span>
+      </div>
+    </form>
+  </section>
+</div>
+
+<script>
+  // ---------- Data (sample entries only; nothing is saved between visits) ----------
+  let students = [
+    {
+      name: "Ahmad Zulkifli",
+      school: "SK Taman Sri Muda, Shah Alam",
+      home: "12 Jalan Sri Muda 25, Taman Sri Muda, Shah Alam"
+    },
+    {
+      name: "Priya Nair",
+      school: "SJK (C) Chung Hua, Klang",
+      home: "8 Lorong Bayu 3, Bandar Baru Klang, Klang"
+    },
+    {
+      name: "Tan Wei Jie",
+      school: "SMK Kota Kemuning, Shah Alam",
+      home: "22 Jalan Anggerik 31/2, Kota Kemuning, Shah Alam"
+    }
+  ];
+  let routeComputed = false;
+
+  // ---------- Section 1: Student list ----------
+  const studentList = document.getElementById("studentList");
+  const studentCount = document.getElementById("studentCount");
+
+  function initials(name) {
+    return name.trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join("");
+  }
+
+  function renderStudents() {
+    studentList.innerHTML = "";
+    students.forEach((s, i) => {
+      const li = document.createElement("li");
+      li.innerHTML =
+        '<div class="avatar">' + escapeHtml(initials(s.name)) + "</div>" +
+        '<div class="stu-info">' +
+          '<div class="name">' + escapeHtml(s.name) + "</div>" +
+          '<div class="point">🎓 Pickup: <b>' + escapeHtml(s.school) + "</b></div>" +
+          '<div class="point">🏠 Drop-off: <b>' + escapeHtml(s.home) + "</b></div>" +
+        "</div>" +
+        '<button class="remove" type="button" data-i="' + i + '" title="Remove ' + escapeHtml(s.name) + '" aria-label="Remove ' + escapeHtml(s.name) + '">×</button>';
+      studentList.appendChild(li);
+    });
+    studentCount.textContent = students.length + (students.length === 1 ? " student" : " students");
+  }
+
+  studentList.addEventListener("click", (e) => {
+    const btn = e.target.closest("button.remove");
+    if (!btn) return;
+    students.splice(Number(btn.dataset.i), 1);
+    renderStudents();
+    if (routeComputed) renderRoute(); // keep the suggested order in sync
+  });
+
+  // ---------- Section 2: Route order ----------
+  // Suggested order heuristic (no live map data):
+  //   Pickups: one stop per school, busiest school first, then in the order entered.
+  //   Drop-offs: one stop per unique home, grouped so drop-offs in the same
+  //   neighbourhood (locality = text after the last comma) come one after another.
+  function localityOf(addr) {
+    const parts = addr.split(",").map(p => p.trim()).filter(Boolean);
+    return parts.length > 1 ? parts[parts.length - 1] : addr;
+  }
+
+  function suggestRoute(list) {
+    const schoolGroups = new Map();
+    list.forEach(s => {
+      if (!schoolGroups.has(s.school)) schoolGroups.set(s.school, []);
+      schoolGroups.get(s.school).push(s);
+    });
+    const pickupStops = [...schoolGroups.entries()]
+      .sort((a, b) => b[1].length - a[1].length)   // pick up the biggest group first
+      .map(([school, kids]) => ({ place: school, kids }));
+
+    const homeGroups = new Map();
+    list.forEach(s => {
+      if (!homeGroups.has(s.home)) homeGroups.set(s.home, []);
+      homeGroups.get(s.home).push(s);
+    });
+    const dropStops = [...homeGroups.entries()]
+      .sort((a, b) =>
+        localityOf(a[0]).localeCompare(localityOf(b[0])) || a[0].localeCompare(b[0])
+      )
+      .map(([home, kids]) => ({ place: home, kids }));
+
+    return { pickupStops, dropStops };
+  }
+
+  function renderRoute() {
+    const routeArea = document.getElementById("routeArea");
+    if (students.length === 0) {
+      routeArea.innerHTML = '<p class="route-placeholder">Add at least one student, then tap <b>Sort route</b>.</p>';
+      return;
+    }
+    const { pickupStops, dropStops } = suggestRoute(students);
+    const total = pickupStops.length + dropStops.length;
+
+    let html = '<ol class="stops">';
+    pickupStops.forEach((stop, i) => {
+      const first = i === 0;
+      html +=
+        '<li class="pickup' + (first ? " first" : "") + '">' +
+          '<span class="stop-type">Pickup</span>' +
+          (first ? '<span class="badge pickup">🚩 First pickup</span>' : "") +
+          '<div class="stop-place">' + escapeHtml(stop.place) + "</div>" +
+          '<div class="stop-who">Pick up: ' + stop.kids.map(k => escapeHtml(k.name)).join(", ") + "</div>" +
+        "</li>";
+    });
+    dropStops.forEach((stop, i) => {
+      const first = i === 0;
+      html +=
+        '<li class="dropoff' + (first ? " first" : "") + '">' +
+          '<span class="stop-type">Drop-off</span>' +
+          (first ? '<span class="badge dropoff">🏠 First drop-off</span>' : "") +
+          '<div class="stop-place">' + escapeHtml(stop.place) + "</div>" +
+          '<div class="stop-who">Drop off: ' + stop.kids.map(k => escapeHtml(k.name)).join(", ") + "</div>" +
+        "</li>";
+    });
+    html += "</ol>";
+    html += '<p class="route-note">Suggested order — schools with more students are picked up first, and drop-offs in the same neighbourhood are grouped together. Adjust as needed for traffic and road conditions.</p>';
+    routeArea.innerHTML = html;
+  }
+
+  document.getElementById("sortBtn").addEventListener("click", () => {
+    routeComputed = true;
+    renderRoute();
+  });
+
+  // ---------- Section 3: Add student ----------
+  const form = document.getElementById("addForm");
+  const formError = document.getElementById("formError");
+  const formOk = document.getElementById("formOk");
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("inName").value.trim();
+    const school = document.getElementById("inSchool").value.trim();
+    const home = document.getElementById("inHome").value.trim();
+
+    if (!name || !school || !home) {
+      formError.style.display = "inline";
+      formOk.style.display = "none";
+      return;
+    }
+    formError.style.display = "none";
+    students.push({ name, school, home });
+    renderStudents();
+    if (routeComputed) renderRoute(); // keep the suggested order up to date
+
+    form.reset();
+    document.getElementById("inName").focus();
+    formOk.style.display = "inline";
+    setTimeout(() => { formOk.style.display = "none"; }, 2000);
+  });
+
+  // ---------- Utilities ----------
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[c]);
+  }
+
+  // ---------- Start ----------
+  renderStudents();
+</script>
+</body>
+</html>
